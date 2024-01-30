@@ -2,12 +2,14 @@ import React from "react";
 import { Button } from "@mui/material";
 
 interface IProps {
+  className?: string;
   type?: "submit" | "button";
   disabled?: boolean;
   onClick?: () => void;
   width?: string;
   bgColor?: string;
   mt?: number;
+  style?: React.CSSProperties;
 }
 
 export const Buttons: React.FC<IProps> = ({
@@ -18,9 +20,12 @@ export const Buttons: React.FC<IProps> = ({
   bgColor,
   mt,
   children,
+  style,
+  className,
 }) => {
   return (
     <Button
+      className={className}
       variant="contained"
       type={type}
       onClick={onClick}
@@ -31,6 +36,7 @@ export const Buttons: React.FC<IProps> = ({
         width,
         background: bgColor,
         marginTop: mt ?? 12,
+        ...style,
       }}
     >
       {children}

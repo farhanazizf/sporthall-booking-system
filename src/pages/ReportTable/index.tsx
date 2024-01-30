@@ -12,7 +12,6 @@ import {
 
 import MainLayout from "../../components/main-layout";
 import { getStorageValue } from "../../utils/local-storage";
-import { myEventsList } from "../Detail";
 import { rupiah } from "../../utils/currency";
 import Styled from "../Home/style";
 import CardCategory from "../Home/_mini-card";
@@ -22,6 +21,7 @@ import { monthList } from "../../components/ui/inputs";
 
 import "chart.js/auto";
 import { TableComponent } from "./chart";
+import { myEventsList } from "../Detail/interface";
 
 export default function ReportPage() {
   const [rows, setRows] = React.useState(myEventsList);

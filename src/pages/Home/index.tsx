@@ -4,7 +4,16 @@ import { useHistory } from "react-router-dom";
 import MainLayout from "../../components/main-layout";
 import Styled from "./style";
 import Card from "./_card";
-import CardCategory from "./_mini-card";
+import { CardIconCategory } from "./_mini-card";
+import Basketball from "../../assets/basketball.png";
+import Badminton from "../../assets/badminton.png";
+import Minsoc from "../../assets/football-ball (3).png";
+import Football from "../../assets/football-ball (1).png";
+import Futsal from "../../assets/football-ball (2).png";
+import Field from "../../assets/football-field.png";
+import http from "../../utils/http";
+import { FilterTypes, IArena, IResponseArenaList } from "./interface";
+import useToast from "../../components/toast";
 
 export const listVenue = [
   {
@@ -80,60 +89,98 @@ export const listVenue = [
 export const listMenu = [
   {
     title: "All Venue",
-    logo: "https://leverageedu.com/blog/wp-content/uploads/2019/06/Career-in-Sports-01.png",
+    logo: Field,
     venue: listVenue.length,
     category: "all",
   },
-  {
-    title: "Futsal",
-    logo: "https://mmc.tirto.id/image/otf/500x0/2022/01/22/istock-1208563153_ratio-16x9.jpg",
-    venue: listVenue.filter((val) => val.category === "futsal").length,
-    category: "futsal",
-  },
+
   {
     title: "Basket",
-    logo: "https://i.eurosport.com/2017/10/23/2193314-45823610-2560-1440.jpg",
+    logo: Basketball,
     venue: listVenue.filter((val) => val.category === "basket").length,
-    category: "basket",
+    category: "BASKETBALL",
   },
   {
     title: "Badminton",
-    logo: "https://japanese.binus.ac.id/files/2019/04/badminton.jpg",
+    logo: Badminton,
     venue: listVenue.filter((val) => val.category === "badminton").length,
-    category: "badminton",
+    category: "BADMINTON",
+  },
+  {
+    title: "Futsal",
+    logo: Futsal,
+    venue: listVenue.filter((val) => val.category === "futsal").length,
+    category: "FUTSAL",
+  },
+  {
+    title: "Mini Soccer",
+    logo: Minsoc,
+    venue: "1",
+    category: "MINISOCCER",
   },
   {
     title: "Sepak Bola",
-    logo: "https://img.olympicchannel.com/images/image/private/t_social_share_thumb/f_auto/primary/qjxgsf7pqdmyqzsptxju",
+    logo: Football,
     venue: "1",
-    category: "bola",
+    category: "FOOTBALL",
   },
-  // {
-  //   title: "Renang",
-  //   logo: "https://media.istockphoto.com/photos/competitive-swimming-picture-id140469717?k=20&m=140469717&s=612x612&w=0&h=gtPRxrz2Ek1qTajNYyAr0Frfz4MpnYnsd5plUjOc35E=",
-  //   venue: "1",
-  //   category: "renang",
-  // },
-  // {
-  //   title: "Voli",
-  //   logo: "https://img.onmanorama.com/content/dam/mm/en/sports/other-sports/images/2021/7/7/volleyball-shutterstock.jpg",
-  //   venue: "4",
-  //   category: "volley",
-  // },
 ];
 
 const Homepage: React.FC = () => {
+  const [Toast, setToast] = useToast();
+
   const history = useHistory();
+  const [loading, setLoading] = React.useState(false);
   const [category, setCategory] = React.useState("all");
+  const [filter, setFilter] = React.useState<FilterTypes>({
+    limit: 3,
+    offset: 0,
+    page: 1,
+  });
+  const [arena, setArena] = React.useState<IArena[]>([]);
+  const [total, setTotal] = React.useState(0);
+
+  const getArenaList = async (categories?: string) => {
+    try {
+      setLoading(true);
+      const { data } = await http.get<IResponseArenaList>(`/arena`, {
+        params: categories
+          ? { offset: 0, category: categories }
+          : { ...filter, category: category === "all" ? "" : category },
+      });
+      if (!categories) {
+        setArena(arena.length > 0 ? [...arena, ...data.data] : data.data);
+      } else {
+        setArena(data.data);
+      }
+      setTotal(data.meta.total);
+    } catch (error) {
+      setToast({ message: "Error get data" });
+    } finally {
+      setTimeout(() => setLoading(false), 500);
+    }
+  };
+
+  React.useEffect(() => {
+    getArenaList();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   const handleCategory = (category: string) => {
     setCategory(category);
+    getArenaList(category);
+  };
+
+  const onLoadMore = () => {
+    setFilter({ ...filter, offset: arena.length });
   };
 
   return (
     <MainLayout>
+      <Toast />
       <Styled.SectionBanner>
-        <img src="https://via.placeholder.com/2000x500" alt="gambars" />
+        <img src="https://placehold.co/2000x500" alt="gambars" />
       </Styled.SectionBanner>
 
       <Styled.SectionCategory>
@@ -143,7 +190,7 @@ const Homepage: React.FC = () => {
 
         <Styled.CategoryWrapper>
           {listMenu.map((val, i) => (
-            <CardCategory
+            <CardIconCategory
               name={val.title}
               key={i}
               logo={val.logo}
@@ -164,7 +211,7 @@ const Homepage: React.FC = () => {
           <p>Feels the different vibes of this sports venues</p>
         </Styled.TitleSectionWrapper>
 
-        <Styled.ItemWrapper>
+        {/* <Styled.ItemWrapper>
           {listVenue
             .filter((vals) =>
               category === "all" ? vals : vals.category === category
@@ -178,20 +225,43 @@ const Homepage: React.FC = () => {
                 onClick={() => history.push("/detail", val)}
               />
             ))}
+        </Styled.ItemWrapper> */}
+
+        <Styled.ItemWrapper>
+          {arena.length > 0 ? (
+            arena.map((val, i) => (
+              <Card
+                name={val.name}
+                key={i}
+                category={val.category}
+                picture={val.image || ""}
+                onClick={() => history.push(`/detail/${val.id}`, val)}
+                city={val.city}
+              />
+            ))
+          ) : (
+            <p>Empty Venue available right now.</p>
+          )}
         </Styled.ItemWrapper>
-        <div className="w-100 d-flex my-5" style={{ justifyContent: "center" }}>
-          <Button
-            variant="outlined"
-            size="large"
-            style={{
-              borderRadius: 8,
-              borderColor: "darkgreen",
-              color: "darkgreen",
-            }}
+        {arena.length > 0 && arena.length < total ? (
+          <div
+            className="w-100 d-flex my-5"
+            style={{ justifyContent: "center" }}
           >
-            Lihat Lebih Banyak
-          </Button>
-        </div>
+            <Button
+              variant="outlined"
+              size="large"
+              style={{
+                borderRadius: 8,
+                borderColor: "darkgreen",
+                color: "darkgreen",
+              }}
+              onClick={onLoadMore}
+            >
+              Lihat Lebih Banyak
+            </Button>
+          </div>
+        ) : null}
       </Styled.SectionVenue>
     </MainLayout>
   );

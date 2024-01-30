@@ -6,16 +6,11 @@ import {
   StarOutline,
 } from "@mui/icons-material";
 import { Divider } from "@mui/material";
-import React, { useEffect } from "react";
+
+import React, { useEffect, useState } from "react";
 import MainLayout from "../../components/main-layout";
 import Styled from "./style";
-// @ts-ignore
-import {
-  Calendar,
-  dateFnsLocalizer,
-  Event,
-  SlotInfo,
-} from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, SlotInfo, View } from "react-big-calendar";
 import format from "date-fns/format";
 import parse from "date-fns/parse";
 import startOfWeek from "date-fns/startOfWeek";
@@ -31,34 +26,25 @@ import { TimeInput } from "../../components/ui/timeinput";
 import Buttons from "../../components/ui/button";
 import { rupiah } from "../../utils/currency";
 import { uuid } from "../../utils/uid";
-import { getStorageValue, setStorageValue } from "../../utils/local-storage";
-import { useLocation } from "react-router-dom";
+import {
+  getStorageValue /* setStorageValue */,
+} from "../../utils/local-storage";
+import { useLocation, useParams } from "react-router-dom";
 import useToast from "../../components/toast";
+import http from "../../utils/http";
+import {
+  EventComponents,
+  IEvents,
+  IEventsGET,
+  // IRangeTime,
+  ITime,
+  IVenue,
+  defaultVal,
+  defaultVenue,
+  // myEventsList,
+} from "./interface";
+import { ModalsPaymentQR } from "./component";
 // import { DatePicker } from "@mui/lab";
-
-interface ITime {
-  start: string | Date | null;
-  end: string | Date | null;
-}
-
-interface IEvents {
-  id: string;
-  title: string;
-  allDay: boolean;
-  start: Date;
-  end: Date;
-  hexColor: string;
-  description: string;
-  category: string;
-}
-
-interface IVenue {
-  id: string;
-  category: string;
-  price: number;
-  picture: string;
-  title: string;
-}
 
 const locales = {
   "id-ID": idID,
@@ -76,74 +62,41 @@ const capitalizeFirstLetter = (string: string) => {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-const defaultVenue = {
-  id: "4f11d1b1-44e5-4e6b-8e49-b81e83042e2c",
-  category: "futsal",
-  price: 200000,
-  picture:
-    "https://i.pinimg.com/originals/bf/61/bd/bf61bd125649fbdb1d0aeaaac6b23c93.jpg",
-  title: "Lapangan Futsal A",
+const getBanner = (type: string) => {
+  switch (type) {
+    case "BASKETBALL":
+      return "https://blog.nasm.org/hubfs/Training%20Basketball%20Players-1.jpg";
+    case "FUTSAL":
+      return "https://asset.ayo.co.id/photos/62106/1.%20Keuntungan%20Sparring%20Futsal%20dalam%20Meningkatakan%20Kualitas%20Permainan.jpg";
+    case "MINISOCCER":
+      return "https://gelora-public-storage.s3-ap-southeast-1.amazonaws.com/upload/public-20230110035949.jpg";
+    default:
+      return "https://sportsvenuecalculator.com/wp-content/uploads/2022/11/Sponsor-6.jpg";
+  }
 };
 
-export const myEventsList = [
-  {
-    id: "id",
-    title: "Farhan - Perbanas Univ",
-    allDay: false,
-    start: new Date("2022-06-17T19:00:00+07:00"),
-    end: new Date("2022-06-17T21:00:00+07:00"),
-    hexColor: "11979e",
-    description: "deskripsi",
-    category: "x",
-    venue_id: "",
-    venue_name: "",
-    status: "BOOKED",
-    total: 10,
-    uniqueCode: "",
-    hours: 1,
-    phone: "",
-  },
-  {
-    id: "idx",
-    title: "Jojo - Perbanas Univ",
-    allDay: false,
-    start: new Date("2022-06-17T21:00:00+07:00"),
-    end: new Date("2022-06-17T23:00:00+07:00"),
-    hexColor: "11979e",
-    description: "deskripsi",
-    category: "x",
-    venue_name: "",
-    venue_id: "",
-    status: "BOOKED",
-    total: 10,
-    uniqueCode: "",
-    hours: 1,
-    phone: "",
-  },
-];
-
-const defaultVal = {
-  name: "",
-  phone: "",
-  team: "",
-  total: 0,
-  hours: 1,
-};
-
-const DetailPage: React.FC = () => {
+const DetailPage: React.FC<{ id: string }> = () => {
+  const { id } = useParams<{ id: string }>();
   const { state: detailVenue } = useLocation<IVenue>();
   const [Toast, setToast] = useToast();
 
   const isAdmin = getStorageValue("auth", "user");
-  const [dateNow, setDateNow] = React.useState(new Date());
-  const [uniqueCode, setUniqueCode] = React.useState<string | undefined>();
-  const [showModal, setShowModal] = React.useState(false);
-  const [showCalendar, setShowCalendar] = React.useState(false);
-  const [formData, setFormData] = React.useState(defaultVal);
-  const [venue, setVenue] = React.useState<IVenue>(defaultVenue);
-  const [allSchedule, setAllSchedule] = React.useState<IEvents[]>([]);
-  const [eventList, setEventList] = React.useState<IEvents[]>([]);
-  const [timeSelect, setTimeSelect] = React.useState<ITime>({
+
+  const [dateNow, setDateNow] = useState(new Date());
+  const [uniqueCode, setUniqueCode] = useState<string | undefined>();
+  const [total, setTotal] = useState<number>(0);
+  const [transactionId, setTransactionId] = useState<string>("");
+  const [showModal, setShowModal] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [formData, setFormData] = useState(defaultVal);
+  const [venue, setVenue] = useState<IVenue>(defaultVenue);
+  // const [allSchedule, setAllSchedule] = useState<IEvents[]>([]);
+  const [eventList, setEventList] = useState<IEvents[]>([]);
+  const [showPayment, setShowPayment] = useState(false);
+
+  // const [month, setMonth] = useState(new Date().getMonth() + 1);
+
+  const [timeSelect, setTimeSelect] = useState<ITime>({
     start:
       new Date().getHours() >= 23
         ? moment("9:00am", "h:mma").toDate()
@@ -157,42 +110,132 @@ const DetailPage: React.FC = () => {
         ? moment("9:00am", "h:mma").toDate()
         : new Date(),
   });
+  const [loading, setLoading] = React.useState(false);
+  const [viewType, setViewType] = React.useState<string>();
+  // const [rangeTime, setRangeTime] = React.useState<IRangeTime>({
+  //   start: moment().toDate(),
+  //   end: moment().toDate(),
+  // });
 
   const checkHours = moment
     .duration(moment(timeSelect.end).diff(timeSelect.start))
     .asHours();
 
   const showCalendarSchedule = async () => {
-    const data = await getStorageValue(`list_event`, myEventsList);
-    const formatted = data
-      .filter(
-        (val) =>
-          val.category === detailVenue.category &&
-          val.venue_id === detailVenue.id
-      )
-      .map((val) => {
+    //   const data = await getStorageValue(`list_event`, myEventsList);
+    //   const formatted = data
+    //     .filter(
+    //       (val) =>
+    //         val.category === detailVenue.category &&
+    //         val.venue_id === detailVenue.id
+    //     )
+    //     .map((val) => {
+    //       return {
+    //         ...val,
+    //         start: new Date(val.start),
+    //         end: new Date(val.end),
+    //       };
+    //     });
+
+    //   setAllSchedule(data);
+    //   setEventList(formatted);
+    //   setVenue(detailVenue);
+    setShowCalendar(true);
+  };
+
+  const showAllEvent = async () => {
+    try {
+      setLoading(true);
+
+      const isMonth = viewType === "month";
+
+      const dateString = moment(dateNow).format();
+      console.log("now", dateString);
+      // now 2023-11-18T22:41:30+07:00
+      const { data } = await http.get<{ data: IEventsGET[] }>(
+        `/booking/${id}/list`,
+        {
+          params: {
+            time_type: isMonth ? "month" : "date",
+            // date: new Date(rangeTime?.start ?? "").toISOString(),
+            date: dateString,
+          },
+        }
+      );
+      // console.log("event", data);
+
+      // {
+      //   // id: uidNow,
+      //   title: `${capitalizeFirstLetter(formData.name)}`,
+      //   allDay: false,
+      //   start: timeSelect.start,
+      //   end: timeSelect.end,
+      //   hexColor: "11979e",
+      //   description: "deskripsi",
+      //   category: venue.category,
+      //   venue_id: venue.id,
+      //   venue_name: venue.title,
+      //   status: "BOOKED",
+      //   total: formData.total,
+      //   uniqueCode: uidNow.split("-")[4],
+      //   hours: differentHours,
+      //   phone: formData.phone,
+      // }
+
+      const formatted = data.data.map((val) => {
         return {
-          ...val,
-          start: new Date(val.start),
-          end: new Date(val.end),
+          id: val.id,
+          title: `${capitalizeFirstLetter(val.booking_name)}`,
+          booking_name: val.booking_name,
+          start: new Date(val.start_time),
+          end: new Date(val.end_time),
+          hexColor: "11979e",
+          allDay: false,
+          status: val.status,
         };
       });
 
-    setAllSchedule(data);
-    setEventList(formatted);
-    setShowCalendar(true);
-    setVenue(detailVenue);
+      setEventList(formatted);
+      setShowCalendar(true);
+
+      // setVenue(data.data);
+    } catch (error) {
+      setToast({ message: "Error get data" });
+    } finally {
+      setTimeout(() => setLoading(false), 200);
+    }
+  };
+
+  const getDetailsVenue = async () => {
+    try {
+      setLoading(true);
+
+      const { data } = await http.get(`/arena/${id}`);
+
+      setVenue(data.data);
+    } catch (error) {
+      setToast({ message: "Error get data" });
+    } finally {
+      setTimeout(() => setLoading(false), 200);
+    }
   };
 
   useEffect(() => {
+    getDetailsVenue();
     showCalendarSchedule();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailVenue]);
 
-  const EventComponent: React.FC<{ event: Event }> = (data) => {
+  useEffect(() => {
+    showAllEvent();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateNow, viewType]);
+
+  const EventComponent: React.FC<EventComponents> = (data) => {
     const { event } = data;
-    return <span style={{ textOverflow: "none" }}>{event?.title}</span>;
+    return <span style={{ textOverflow: "none" }}>{event?.booking_name}</span>;
   };
 
   const eventStyleGetter = ({ hexColor }: { hexColor: string }) => {
@@ -211,6 +254,7 @@ const DetailPage: React.FC = () => {
   };
 
   const handleSelectTime = (time: SlotInfo) => {
+    console.log("selected");
     const sameHour = new Date().getHours() === moment(time.start).hours();
     const beforeNow = moment(time.start).isBefore();
 
@@ -245,35 +289,84 @@ const DetailPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = () => {
-    const uidNow = uuid();
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
 
-    const differentHours = moment
-      .duration(moment(moment(timeSelect.end)).diff(timeSelect.start))
-      .asHours();
+      const uidNow = uuid();
 
-    const newData = {
-      id: uidNow,
-      title: `${capitalizeFirstLetter(formData.name)} - ${capitalizeFirstLetter(
-        formData.team
-      )}`,
-      allDay: false,
-      start: timeSelect.start,
-      end: timeSelect.end,
-      hexColor: "11979e",
-      description: "deskripsi",
-      category: venue.category,
-      venue_id: venue.id,
-      venue_name: venue.title,
-      status: "BOOKED",
-      total: formData.total,
-      uniqueCode: uidNow.split("-")[4],
-      hours: differentHours,
-      phone: formData.phone,
-    };
+      const differentHours = moment
+        .duration(moment(moment(timeSelect.end)).diff(timeSelect.start))
+        .asHours();
 
-    setStorageValue(`list_event`, [...allSchedule, newData], myEventsList);
-    setUniqueCode(uidNow.split("-")[4]);
+      // const newData = {
+      //   id: uidNow,
+      //   title: `${capitalizeFirstLetter(formData.name)} - ${capitalizeFirstLetter(
+      //     formData.team
+      //   )}`,
+      //   allDay: false,
+      //   start: timeSelect.start,
+      //   end: timeSelect.end,
+      //   hexColor: "11979e",
+      //   description: "deskripsi",
+      //   category: venue.category,
+      //   venue_id: venue.id,
+      //   venue_name: venue.title,
+      //   status: "BOOKED",
+      //   total: formData.total,
+      //   uniqueCode: uidNow.split("-")[4],
+      //   hours: differentHours,
+      //   phone: formData.phone,
+      // };
+
+      // // send to API
+      // const newData = {
+      //   // id: uidNow,
+      //   title: `${capitalizeFirstLetter(formData.name)}`,
+      //   allDay: false,
+      //   start: timeSelect.start,
+      //   end: timeSelect.end,
+      //   hexColor: "11979e",
+      //   description: "deskripsi",
+      //   category: venue.category,
+      //   venue_id: venue.id,
+      //   venue_name: venue.title,
+      //   status: "BOOKED",
+      //   total: formData.total,
+      //   uniqueCode: uidNow.split("-")[4],
+      //   hours: differentHours,
+      //   phone: formData.phone,
+      // };
+
+      const testSend = {
+        // id: uidNow,
+        booking_name: capitalizeFirstLetter(formData.name),
+        start_time: timeSelect.start,
+        end_time: timeSelect.end,
+        // status: "BOOKED",
+        id_arena: venue.id,
+        code: uidNow.split("-")[4],
+        hours: differentHours,
+        total: formData.total,
+        phone: formData.phone,
+      };
+
+      // setStorageValue(`list_event`, [...allSchedule, newData], myEventsList);
+      setTotal(formData.total);
+      setUniqueCode(uidNow.split("-")[4]);
+
+      const { data } = await http.post(`/arena/booking`, testSend, {
+        headers: { Authorization: "Bearer " },
+      });
+
+      setShowPayment(true);
+
+      setTransactionId(data.data.id);
+    } catch (error) {
+      setToast({ message: "Error booking schedule" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -281,6 +374,56 @@ const DetailPage: React.FC = () => {
     setShowModal(false);
     setFormData(defaultVal);
     showCalendarSchedule();
+    showAllEvent();
+  };
+
+  const handleChangeRange = (
+    range:
+      | Date[]
+      | {
+          start: Date;
+          end: Date;
+        },
+    view?: View | undefined
+  ) => {
+    // const ranges = range as IRangeTime;
+    const rangeArr = range as Date[];
+
+    if (range) {
+      if (view === "month") {
+        // const currentMonth = ranges.start.getMonth();
+        // const date =
+        //   ranges.start.getDate() > 22
+        //     ? new Date(ranges.start).setMonth(currentMonth + 1)
+        //     : ranges.start;
+        // console.log("ramge", new Date(date));
+        // let start = moment(ranges.start).startOf("month");
+        // let end = moment(ranges.end).endOf("month");
+        // start = start.startOf("week");
+        // end = end.endOf("week");
+        // console.log("starts", start);
+        // console.log("ends", end);
+        // setDateNow(ranges.);
+      } else if (view === "day") {
+        setDateNow(rangeArr[0]);
+      }
+
+      // setRangeTime(
+      //   view === "month" ? ranges : { start: rangeArr[0], end: rangeArr[0] }
+      // );
+    }
+    // setViewType(view);
+  };
+
+  const handleNavigate = (date: Date, v: View) => {
+    if (v === "month") {
+      // const startMonth = moment(date).endOf("month").toDate();
+      // console.log("start", startMonth);
+      setDateNow(new Date(date));
+    } else if (v === "day") {
+      // console.log("day", date);
+      setDateNow(date);
+    }
   };
 
   const isDisabled = Object.values(formData).some(
@@ -289,6 +432,21 @@ const DetailPage: React.FC = () => {
   return (
     <MainLayout>
       <Toast />
+      {/* <ModalsPayment
+        visible
+        onDismiss={handleClose}
+        uniqueCode="xaazxa"
+        id_transaction="a121"
+      /> */}
+
+      <ModalsPaymentQR
+        visible={showPayment}
+        onDismiss={() => setShowPayment(false)}
+        uniqueCode={uniqueCode ?? "xzx"}
+        id_transaction={transactionId ?? "xzasw"}
+        total={total}
+      />
+
       <Modals visible={showModal} onDismiss={handleClose}>
         {!uniqueCode ? (
           <Styled.ModalWrapper>
@@ -304,14 +462,14 @@ const DetailPage: React.FC = () => {
               value={formData.name}
             />
 
-            <Input
+            {/* <Input
               label="Organisasi/Tim"
               name="organisasi"
               onChange={(value) =>
                 setFormData({ ...formData, team: value.target.value })
               }
               value={formData.team}
-            />
+            /> */}
 
             <div style={{ display: "flex", width: "100%" }}>
               <TimeInput
@@ -384,11 +542,12 @@ const DetailPage: React.FC = () => {
       </Modals>
 
       <Styled.SectionBanner>
-        <img src="https://via.placeholder.com/2000x300" alt="gambars" />
+        {/* <img src="https://via.placeholder.com/2000x300" alt="gambars" /> */}
+        <img src={getBanner(venue.category)} alt="gambars" />
       </Styled.SectionBanner>
 
       <Styled.SectionHeader>
-        <h2>{venue.title}</h2>
+        <h2>{venue.name}</h2>
         <div className="d-flex " style={{ alignItems: "center" }}>
           <Star color="warning" />
           <Star color="warning" />
@@ -405,10 +564,11 @@ const DetailPage: React.FC = () => {
         </div>
         <div>
           <p>
-            Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ex,
+            {venue.description}
+            {/* Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ex,
             reiciendis eveniet praesentium debitis enim velit ad harum nobis
             quia illo vero commodi repudiandae, cupiditate sed, molestias aut
-            nostrum totam iure.
+            nostrum totam iure. */}
           </p>
         </div>
       </Styled.Wrapper>
@@ -436,6 +596,7 @@ const DetailPage: React.FC = () => {
               selectable
               defaultDate={dateNow}
               localizer={localizer}
+              // events={eventList.filter((v) => v.status === "BOOKED")}
               events={eventList}
               startAccessor="start"
               endAccessor="end"
@@ -447,10 +608,21 @@ const DetailPage: React.FC = () => {
               defaultView="day"
               min={moment("9:00am", "h:mma").toDate()}
               max={moment("11:00pm", "h:mma").toDate()}
+              onRangeChange={(range, view) => handleChangeRange(range, view)}
+              onNavigate={(date, view, act) => handleNavigate(date, view)}
+              onView={(v) => setViewType(v)}
+              onSelectSlot={(e) => handleSelectTime(e)}
+              onShowMore={(event, date) => {
+                const bufferOneHour = moment(
+                  moment(date).add(1, "hour").toDate()
+                ).toDate();
+
+                setDateNow(bufferOneHour);
+              }}
               // step={0}
+
               components={{
-                // @ts-ignore
-                event: EventComponent,
+                event: (prop) => <EventComponent {...prop} />,
                 month: {
                   dateHeader: ({ date, label }) => {
                     if (new Date(date).getMonth() === new Date().getMonth()) {
@@ -475,7 +647,6 @@ const DetailPage: React.FC = () => {
                   },
                 },
               }}
-              onSelectSlot={(e) => handleSelectTime(e)}
             />
           )}
         </div>

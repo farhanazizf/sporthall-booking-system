@@ -9,8 +9,8 @@ import Modals from "./modal";
 import StyledM from "../pages/Detail/style";
 import { Input } from "./ui/inputs";
 import Buttons from "./ui/button";
-import { myEventsList } from "../pages/Detail";
 import useToast from "./toast";
+import { myEventsList } from "../pages/Detail/interface";
 
 const Styled = {
   NavWrapper: styled(Container)`
@@ -66,8 +66,6 @@ const NavbarMenu: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    console.log(data);
-
     const foundedData = data.filter((val) => val.uniqueCode === code);
 
     if (foundedData.length > 0) {
@@ -85,7 +83,7 @@ const NavbarMenu: React.FC = () => {
       setToast({ message: "Kode tidak ditemukan", type: "error" });
     }
     // setModals(false);
-    console.log(data.filter((val) => val.uniqueCode === code));
+    // console.log(data.filter((val) => val.uniqueCode === code));
   };
 
   const isDisabled = code === "";
@@ -159,15 +157,6 @@ const NavbarMenu: React.FC = () => {
             data-toggle="dropdown"
             aria-expanded="false"
           />
-          {/* <button
-            className="btn btn-secondary dropdown-toggle"
-            type="button"
-            id="dropdownMenuButton"
-            data-toggle="dropdown"
-            aria-expanded="false"
-          >
-            Dropdown button
-          </button> */}
           <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
             {auth === "user" ? (
               <span

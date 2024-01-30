@@ -57,6 +57,7 @@ export const Input: React.FC<IProps> = ({
         onChange={onChange}
         value={value}
         type={type}
+        autoComplete="off"
       />
     </Styled.Row>
   );

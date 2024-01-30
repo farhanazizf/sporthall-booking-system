@@ -1,3 +1,4 @@
+import { Chip } from "@mui/material";
 import styled from "styled-components/macro";
 
 const Styled = {
@@ -94,6 +95,7 @@ const Styled = {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding: 24px 0;
+    justify-content: center;
   `,
 
   CardCategoryWrapper: styled.div`
@@ -149,6 +151,51 @@ const Styled = {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+  `,
+
+  CardIconWrapper: styled.div`
+    cursor: pointer;
+    border-radius: 16px;
+    // height: 200px;
+    // min-width: 350px;
+    max-width: 10%;
+    border: 1px solid rgb(196, 196, 196);
+    // background: #f5f5f5;
+    margin: 0 12px;
+    padding: 8px;
+
+    .title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-top: 8px;
+      text-align: center;
+    }
+  `,
+
+  IconWrapper: styled.div`
+    // width: 10%;
+    // height: 70%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    img {
+      border-radius: 16px 16px 0 0;
+      // width: 100%;
+      height: 100%;
+    }
+  `,
+
+  Chip: styled(Chip)`
+    &&& {
+      width: fit-content;
+      margin-bottom: 8px;
+      background: darkgreen;
+      padding: 1;
+      font-size: 11;
+      color: white;
+      text-transform: uppercase;
+    }
   `,
 };
 
