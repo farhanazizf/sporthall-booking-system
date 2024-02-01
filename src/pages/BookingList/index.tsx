@@ -190,6 +190,12 @@ const BookingListPartner: React.FC = () => {
     // setPage(0);
   };
 
+  const mapStatusColor = (status: string) => {
+    if (status === "SUBMITTED") return "default";
+    if (status === "PAID") return "primary";
+    return "success";
+  };
+
   return (
     <MainLayout>
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -237,7 +243,7 @@ const BookingListPartner: React.FC = () => {
                     <TableCell align="center">
                       <Chip
                         label={row.status}
-                        color={row.status === "PAID" ? "success" : "primary"}
+                        color={mapStatusColor(row.status)}
                       />
                     </TableCell>
                     <TableCell align="center">
