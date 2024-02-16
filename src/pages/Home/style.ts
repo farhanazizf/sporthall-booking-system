@@ -17,6 +17,7 @@ const Styled = {
     display: flex;
     flex-direction: column;
     max-width: 100%;
+    padding-top: 2.5%;
   `,
 
   ItemWrapper: styled.div`

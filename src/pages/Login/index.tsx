@@ -3,10 +3,11 @@ import { useHistory } from "react-router-dom";
 import MainLayout from "../../components/main-layout";
 import useToast from "../../components/toast";
 import { setStorageValue } from "../../utils/local-storage";
-import { EMAIL, PASSWORD } from "./auth";
+// import { EMAIL, PASSWORD } from "./auth";
 import "./style.css";
 import http from "../../utils/http";
 import { LoadingButton } from "@mui/lab";
+import { initialLocalStorage } from "../../utils/constant";
 
 const Login: React.FC = () => {
   const history = useHistory();
@@ -32,7 +33,11 @@ const Login: React.FC = () => {
       setLoading(true);
 
       const { data } = await http.post(`/auth/api/v1/login`, loginData);
-      setStorageValue("auth", { auth: data.token }, { auth: "" });
+      setStorageValue(
+        "auth",
+        { auth: data.token, name: data.name, roles: data.role },
+        initialLocalStorage
+      );
       history.push("/");
     } catch (error) {
       setToast({ message: "wrong email/password" });
@@ -46,7 +51,7 @@ const Login: React.FC = () => {
       <Toast />
       <div style={{ padding: 32 }}>
         <form>
-          <h3>Sign In</h3>
+          <h3 className="text-center">Sign In</h3>
           <div className="mb-3">
             <label>Email address</label>
             <input
@@ -68,18 +73,6 @@ const Login: React.FC = () => {
                 setLoginData({ ...loginData, password: val.target.value })
               }
             />
-          </div>
-          <div className="mb-3">
-            <div className="custom-control custom-checkbox">
-              {/* <input
-                type="checkbox"
-                className="custom-control-input"
-                id="customCheck1"
-              />
-              <label className="custom-control-label" htmlFor="customCheck1">
-                Remember me
-              </label> */}
-            </div>
           </div>
           <div className="d-flex" style={{ justifyContent: "flex-end" }}>
             <LoadingButton

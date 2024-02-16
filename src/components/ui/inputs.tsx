@@ -1,8 +1,15 @@
 import React from "react";
-import { TextField } from "@mui/material";
+import {
+  IconButton,
+  InputAdornment,
+  InputBaseComponentProps,
+  StandardTextFieldProps,
+  TextField,
+  TextFieldProps,
+} from "@mui/material";
 import Styled from "./style";
 
-interface IProps {
+interface IProps extends StandardTextFieldProps {
   name: string;
   label: string;
   loading?: boolean;
@@ -19,6 +26,7 @@ interface IProps {
   onChange:
     | React.ChangeEventHandler<HTMLTextAreaElement | HTMLInputElement>
     | undefined;
+  inputProps?: InputBaseComponentProps;
 }
 
 export const monthList = [
@@ -44,10 +52,11 @@ export const Input: React.FC<IProps> = ({
   onChange,
   value,
   width,
-  // ...rest
+  // inputProps,
+  ...rest
 }) => {
   return (
-    <Styled.Row>
+    <Styled.Row style={label === "Kode Booking" ? { margin: 0 } : undefined}>
       <TextField
         disabled={disabled}
         label={label}
@@ -58,6 +67,37 @@ export const Input: React.FC<IProps> = ({
         value={value}
         type={type}
         autoComplete="off"
+        style={{
+          width,
+          margin: 0,
+        }}
+        // InputProps={{
+        //   endAdornment: (
+        //     <InputAdornment position="start">
+        //       <IconButton
+        //         aria-label="toggle password visibility"
+        //         // onClick={handleClickShowPassword}
+        //         // onMouseDown={handleMouseDownPassword}
+        //         // onKeyUp={(e) =>e.}
+        //       >
+        //         <Search />
+        //       </IconButton>
+        //     </InputAdornment>
+        //   ),
+        // }}
+        {...rest}
+
+        // endAdornment={
+        //   <InputAdornment position="end">
+        //     <IconButton
+        //       aria-label="toggle password visibility"
+        //       onClick={handleClickShowPassword}
+        //       onMouseDown={handleMouseDownPassword}
+        //     >
+        //       {showPassword ? <VisibilityOff /> : <Visibility />}
+        //     </IconButton>
+        //   </InputAdornment>
+        // }
       />
     </Styled.Row>
   );

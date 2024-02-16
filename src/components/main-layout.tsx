@@ -54,7 +54,7 @@ const MainLayout: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
   return (
-    <div>
+    <div style={{ minHeight: "100vh" }}>
       <TopMenu />
       <NavbarMenu />
       <Container maxWidth="lg">{children}</Container>

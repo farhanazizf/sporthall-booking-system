@@ -5,6 +5,14 @@ import QRCode from "qrcode.react";
 import Buttons from "../../components/ui/button";
 import Styled from "./style";
 import Modals, { ModalProps } from "../../components/modal";
+// import {
+//   Button,
+//   Dialog,
+//   DialogActions,
+//   DialogContent,
+//   DialogContentText,
+//   DialogTitle,
+// } from "@mui/material";
 // import { Input } from "../../components/ui/inputs";
 
 type IMethod = "ONSITE" | "ONLINE";
@@ -12,9 +20,9 @@ type IMethod = "ONSITE" | "ONLINE";
 const QRIS_BG = "https://xendit.co/wp-content/uploads/2020/03/iconQris.png";
 
 interface IPopupPayment extends ModalProps {
-  id_transaction: string;
   total: number;
   uniqueCode?: string;
+  onOnlinePayment?: () => void;
 }
 
 export const ModalsPayment: React.FC<IPopupPayment> = ({
@@ -80,6 +88,7 @@ export const ModalsPaymentQR: React.FC<IPopupPayment> = ({
   visible,
   uniqueCode,
   onDismiss,
+  onOnlinePayment,
 }) => {
   const [method, setMethod] = useState<IMethod>();
 
@@ -101,7 +110,7 @@ export const ModalsPaymentQR: React.FC<IPopupPayment> = ({
       <div className="d-flex flex-column align-items-center">
         <div>
           <p style={{ fontSize: 16, margin: 0, fontWeight: "bold" }}>
-            Catat/simpan QR booking id dibawah ini
+            Catat/Simpan QR Kode Booking dibawah ini
           </p>
         </div>
 
@@ -109,7 +118,7 @@ export const ModalsPaymentQR: React.FC<IPopupPayment> = ({
           <div className="d-flex flex-column" style={{ alignItems: "center" }}>
             <div className="mt-4">
               <p style={{ fontSize: 14, margin: 0, textAlign: "center" }}>
-                Booking ID
+                Kode Booking
               </p>
               <Styled.TextUniqueCode>
                 {uniqueCode.toUpperCase()}
@@ -138,14 +147,22 @@ export const ModalsPaymentQR: React.FC<IPopupPayment> = ({
 
             <div className="mt-3">
               <p style={{ fontSize: 14, margin: 0 }}>
-                tunjukkan ke kasir atau petugas venue
+                INFO:{" "}
+                <strong>
+                  {method === "ONSITE"
+                    ? "Tunjukkan QR/Booking Code ke kasir atau petugas venue untuk pembayaran booking"
+                    : "Tunjukkan QR/Booking Code pada saat hari penyewaan"}
+                </strong>
               </p>
             </div>
 
             <Buttons
               style={{ width: "100%" }}
               bgColor="black"
-              onClick={() => setMethod("ONLINE")}
+              onClick={() => {
+                setMethod(undefined);
+                onDismiss();
+              }}
             >
               Ok
             </Buttons>
@@ -197,7 +214,10 @@ export const ModalsPaymentQR: React.FC<IPopupPayment> = ({
 
                     <Buttons
                       bgColor="black"
-                      onClick={() => setMethod("ONLINE")}
+                      onClick={() => {
+                        setMethod("ONLINE");
+                        onOnlinePayment?.();
+                      }}
                     >
                       Konfirmasi Pembayaran
                     </Buttons>
@@ -212,7 +232,9 @@ export const ModalsPaymentQR: React.FC<IPopupPayment> = ({
                     <Buttons
                       mt={0}
                       bgColor="white"
-                      onClick={() => setMethod("ONSITE")}
+                      onClick={() => {
+                        setMethod("ONSITE");
+                      }}
                       style={{ border: "1px solid black", color: "black" }}
                     >
                       Bayar langsung di tempat
@@ -224,7 +246,9 @@ export const ModalsPaymentQR: React.FC<IPopupPayment> = ({
           ) : null}
 
           {/* next develop */}
-          {method ? method === "ONSITE" ? <SectionBookingId /> : null : null}
+          {method === "ONSITE" || method === "ONLINE" ? (
+            <SectionBookingId />
+          ) : null}
 
           {/* <Buttons disabled width="100%" mt={24} onClick={onDismiss}>
             <span style={{ fontSize: 22, margin: 8 }}>Ok</span>

@@ -1,16 +1,36 @@
-import { Container } from "@mui/material";
+import { Chip, Container } from "@mui/material";
 import React from "react";
 import styled from "styled-components";
-import { AccountCircleOutlined } from "@mui/icons-material";
+import {
+  AccountCircleOutlined,
+  Face,
+  Store,
+  VerifiedUser,
+} from "@mui/icons-material";
 import LogoSweat from "../assets/sweatt.png";
 import { useHistory } from "react-router-dom";
-import { getStorageValue, setStorageValue } from "../utils/local-storage";
+import {
+  getStorageValue,
+  removeStorageValue,
+  // setStorageValue,
+} from "../utils/local-storage";
 import Modals from "./modal";
 import StyledM from "../pages/Detail/style";
 import { Input } from "./ui/inputs";
 import Buttons from "./ui/button";
 import useToast from "./toast";
-import { myEventsList } from "../pages/Detail/interface";
+// import { myEventsList } from "../pages/Detail/interface";
+import http from "../utils/http";
+import { ErrorTypes, initialLocalStorage } from "../utils/constant";
+
+type IChipColor =
+  | "default"
+  | "primary"
+  | "success"
+  | "error"
+  | "info"
+  | "warning"
+  | "secondary";
 
 const Styled = {
   NavWrapper: styled(Container)`
@@ -19,6 +39,10 @@ const Styled = {
       background: #ffffff;
       // width: 100%;
       padding: 30px 0;
+      // position: sticky;
+      // top: 0;
+      // width: 100%;
+      // box-shadow: 0 2px 3px #aaaaaa;
     }
     p {
       margin: 0;
@@ -51,49 +75,67 @@ const Styled = {
 
 const NavbarMenu: React.FC = () => {
   const history = useHistory();
+  const auth = getStorageValue("auth", initialLocalStorage);
 
   const [Toast, setToast] = useToast();
-  const auth = getStorageValue("auth", "user");
-  const data = getStorageValue("list_event", myEventsList);
+  // const auth = getStorageValue("auth", "user");
+  // const data = getStorageValue("list_event", myEventsList);
 
   const [modals, setModals] = React.useState(false);
   const [code, setCode] = React.useState("");
 
   const handleLogout = () => {
-    setStorageValue("auth", "user", "user");
+    // setStorageValue("auth", "user", "user");
+    removeStorageValue("auth");
 
     history.push("/login");
   };
 
-  const handleSubmit = () => {
-    const foundedData = data.filter((val) => val.uniqueCode === code);
+  const handleSubmit = async () => {
+    try {
+      const { data } = await http.put(
+        "/partner/booking/status",
+        {
+          status: "DONE",
+          code: code.toLowerCase(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${auth.auth}`,
+          },
+        }
+      );
+      setToast({ message: "Venue sudah dapat digunakan!", type: "success" });
 
-    if (foundedData.length > 0) {
-      const indexData = data.findIndex((val) => val.uniqueCode === code);
-
-      data[indexData].status = "DONE";
-
-      setStorageValue("list_event", data, data);
-
-      setCode("");
-      setToast({ message: "Transaksi Selesai!", type: "success" });
+      history.push(`/detail/${data.data.id_arena}`);
       setModals(false);
-      window.location.reload();
-    } else {
-      setToast({ message: "Kode tidak ditemukan", type: "error" });
+    } catch (err) {
+      const error = err as ErrorTypes;
+      setToast({
+        message: error?.response.data.data.message ?? "",
+        type: "error",
+      });
     }
-    // setModals(false);
-    // console.log(data.filter((val) => val.uniqueCode === code));
   };
 
-  const isDisabled = code === "";
+  const iconSelection = (roles: string) => {
+    if (roles === "PARTNER") {
+      return { icon: <Store />, color: "primary" };
+    } else if (roles === "admin") {
+      return { icon: <VerifiedUser />, color: "success" };
+    }
+    return { icon: <Face />, color: "default" };
+  };
+
+  const isDisabled = code.length < 8;
+
   return (
     <Styled.NavWrapper maxWidth={false}>
       <Toast />
 
       <Modals visible={modals} onDismiss={() => setModals(false)}>
         <StyledM.ModalWrapper>
-          <h3 style={{ textAlign: "center" }}>Konfirmasi Kode Unik Booking</h3>
+          <h3 style={{ textAlign: "center" }}>Konfirmasi Kode Booking</h3>
           <div
             className="d-flex"
             style={{
@@ -103,7 +145,7 @@ const NavbarMenu: React.FC = () => {
             }}
           >
             <Input
-              label="Kode Unik"
+              label="Kode Booking"
               type="text"
               name="code"
               width="100%"
@@ -135,21 +177,54 @@ const NavbarMenu: React.FC = () => {
         <p style={{ cursor: "pointer" }} onClick={() => history.push("/")}>
           Home
         </p>
-        <p style={{ cursor: "pointer" }} onClick={() => setModals(true)}>
-          Confirm Booking
-        </p>
-        {auth !== "user" && (
+        {["PARTNER"].includes(auth.roles) ? (
+          <p
+            style={{ cursor: "pointer" }}
+            onClick={() => history.push("/partner")}
+          >
+            Daftar Booking
+          </p>
+        ) : null}
+        {["admin", "PARTNER"].includes(auth.roles) ? (
+          <p style={{ cursor: "pointer" }} onClick={() => setModals(true)}>
+            Verifikasi Kode Booking
+          </p>
+        ) : null}
+
+        {!auth.auth && (
+          <p
+            style={{ cursor: "pointer" }}
+            onClick={() => history.push("/login")}
+          >
+            Login
+          </p>
+        )}
+        {/* {auth !== "user" && (
           <p
             style={{ cursor: "pointer" }}
             onClick={() => history.push("/report")}
           >
             Report
           </p>
-        )}
+        )} */}
       </Styled.FlexWrapper>
       <Styled.FlexWrapper justify="end">
         <div></div>
-        <div className="dropdown">
+        <div className="d-flex" style={{ alignItems: "center", margin: 0 }}>
+          {auth.roles && (
+            <Chip
+              className="mx-0 mr-2"
+              color={iconSelection(auth.roles).color as IChipColor}
+              icon={iconSelection(auth.roles).icon}
+              label={auth.roles.toUpperCase()}
+              role="none"
+            />
+          )}
+          {auth.name && (
+            <p style={{ margin: 0, cursor: "default" }}>{auth.name}</p>
+          )}
+        </div>
+        <div className="dropdown mx-0 ml-1">
           <AccountCircleOutlined
             className="dropdown-toggle"
             type="button"
@@ -158,7 +233,22 @@ const NavbarMenu: React.FC = () => {
             aria-expanded="false"
           />
           <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            {auth === "user" ? (
+            {auth.auth ? (
+              <>
+                <span className="dropdown-item disabled">My Profile</span>
+                <span className="dropdown-item" onClick={() => handleLogout()}>
+                  Logout
+                </span>
+              </>
+            ) : (
+              <span
+                className="dropdown-item"
+                onClick={() => history.push("/login")}
+              >
+                Login
+              </span>
+            )}
+            {/* {auth === "user" ? (
               <span
                 className="dropdown-item"
                 onClick={() => history.push("/login")}
@@ -172,7 +262,7 @@ const NavbarMenu: React.FC = () => {
                   Logout
                 </span>
               </>
-            )}
+            )} */}
           </div>
         </div>
       </Styled.FlexWrapper>

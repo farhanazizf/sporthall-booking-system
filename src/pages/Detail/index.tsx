@@ -26,9 +26,9 @@ import { TimeInput } from "../../components/ui/timeinput";
 import Buttons from "../../components/ui/button";
 import { rupiah } from "../../utils/currency";
 import { uuid } from "../../utils/uid";
-import {
-  getStorageValue /* setStorageValue */,
-} from "../../utils/local-storage";
+// import {
+//   getStorageValue /* setStorageValue */,
+// } from "../../utils/local-storage";
 import { useLocation, useParams } from "react-router-dom";
 import useToast from "../../components/toast";
 import http from "../../utils/http";
@@ -80,12 +80,10 @@ const DetailPage: React.FC<{ id: string }> = () => {
   const { state: detailVenue } = useLocation<IVenue>();
   const [Toast, setToast] = useToast();
 
-  const isAdmin = getStorageValue("auth", "user");
-
   const [dateNow, setDateNow] = useState(new Date());
   const [uniqueCode, setUniqueCode] = useState<string | undefined>();
   const [total, setTotal] = useState<number>(0);
-  const [transactionId, setTransactionId] = useState<string>("");
+  // const [transactionId, setTransactionId] = useState<string>("");
   const [showModal, setShowModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [formData, setFormData] = useState(defaultVal);
@@ -112,35 +110,19 @@ const DetailPage: React.FC<{ id: string }> = () => {
   });
   const [loading, setLoading] = React.useState(false);
   const [viewType, setViewType] = React.useState<string>();
-  // const [rangeTime, setRangeTime] = React.useState<IRangeTime>({
-  //   start: moment().toDate(),
-  //   end: moment().toDate(),
-  // });
 
   const checkHours = moment
     .duration(moment(timeSelect.end).diff(timeSelect.start))
     .asHours();
 
   const showCalendarSchedule = async () => {
-    //   const data = await getStorageValue(`list_event`, myEventsList);
-    //   const formatted = data
-    //     .filter(
-    //       (val) =>
-    //         val.category === detailVenue.category &&
-    //         val.venue_id === detailVenue.id
-    //     )
-    //     .map((val) => {
-    //       return {
-    //         ...val,
-    //         start: new Date(val.start),
-    //         end: new Date(val.end),
-    //       };
-    //     });
-
-    //   setAllSchedule(data);
-    //   setEventList(formatted);
-    //   setVenue(detailVenue);
     setShowCalendar(true);
+  };
+
+  const colorStatus = (statuss: string) => {
+    if (statuss === "DONE") return "1AACAC";
+    if (statuss === "PAID") return "362FD9";
+    return "59B4C3"; // verified
   };
 
   const showAllEvent = async () => {
@@ -150,8 +132,6 @@ const DetailPage: React.FC<{ id: string }> = () => {
       const isMonth = viewType === "month";
 
       const dateString = moment(dateNow).format();
-      console.log("now", dateString);
-      // now 2023-11-18T22:41:30+07:00
       const { data } = await http.get<{ data: IEventsGET[] }>(
         `/booking/${id}/list`,
         {
@@ -162,25 +142,6 @@ const DetailPage: React.FC<{ id: string }> = () => {
           },
         }
       );
-      // console.log("event", data);
-
-      // {
-      //   // id: uidNow,
-      //   title: `${capitalizeFirstLetter(formData.name)}`,
-      //   allDay: false,
-      //   start: timeSelect.start,
-      //   end: timeSelect.end,
-      //   hexColor: "11979e",
-      //   description: "deskripsi",
-      //   category: venue.category,
-      //   venue_id: venue.id,
-      //   venue_name: venue.title,
-      //   status: "BOOKED",
-      //   total: formData.total,
-      //   uniqueCode: uidNow.split("-")[4],
-      //   hours: differentHours,
-      //   phone: formData.phone,
-      // }
 
       const formatted = data.data.map((val) => {
         return {
@@ -189,7 +150,8 @@ const DetailPage: React.FC<{ id: string }> = () => {
           booking_name: val.booking_name,
           start: new Date(val.start_time),
           end: new Date(val.end_time),
-          hexColor: "11979e",
+          // hexColor: val.status === "DONE" ? "11979e" : "59B4C3",
+          hexColor: colorStatus(val.status),
           allDay: false,
           status: val.status,
         };
@@ -254,40 +216,50 @@ const DetailPage: React.FC<{ id: string }> = () => {
   };
 
   const handleSelectTime = (time: SlotInfo) => {
-    console.log("selected");
     const sameHour = new Date().getHours() === moment(time.start).hours();
     const beforeNow = moment(time.start).isBefore();
 
-    if (isAdmin !== "user") {
-      if (!beforeNow || sameHour) {
-        const differentHours = moment
-          .duration(
-            moment(moment(time.start).add(1, "hour").toDate()).diff(time.start)
-          )
-          .asHours();
+    // if (isAdmin !== "user") {
+    if (!beforeNow || sameHour) {
+      const differentHours = moment
+        .duration(
+          moment(moment(time.start).add(1, "hour").toDate()).diff(time.start)
+        )
+        .asHours();
 
-        setDateNow(time.start);
-        setFormData({
-          ...formData,
-          hours: differentHours,
-          total: differentHours * venue.price,
-        });
-        setTimeSelect({
-          start: time.start,
-          end: moment(time.start).add(1, "hour").toDate(),
-        });
-        setShowModal(true);
-      } else {
-        setToast({
-          message: "Waktu telah lewat tidak dapat menambah data booking",
-        });
-      }
+      setDateNow(time.start);
+      setFormData({
+        ...formData,
+        hours: differentHours,
+        total: differentHours * venue.price,
+      });
+      setTimeSelect({
+        start: time.start,
+        end: moment(time.start).add(1, "hour").toDate(),
+      });
+      setShowModal(true);
     } else {
       setToast({
-        message: "Hanya admin yang dapat melakukan input data booking!",
+        message: "Waktu telah lewat tidak dapat menambah data booking",
       });
     }
   };
+
+  // const submitBooking = async () => {
+  //   try {
+  //     const { data } = await http.post(`/arena/booking`, testSend, {
+  //       headers: { Authorization: "Bearer " },
+  //     });
+
+  //     setShowPayment(true);
+
+  //     setTransactionId(data.data.id);
+  //     setShowModal(false);
+
+  //   } catch (error) {
+
+  //   }
+  // }
 
   const handleSubmit = async () => {
     try {
@@ -299,44 +271,7 @@ const DetailPage: React.FC<{ id: string }> = () => {
         .duration(moment(moment(timeSelect.end)).diff(timeSelect.start))
         .asHours();
 
-      // const newData = {
-      //   id: uidNow,
-      //   title: `${capitalizeFirstLetter(formData.name)} - ${capitalizeFirstLetter(
-      //     formData.team
-      //   )}`,
-      //   allDay: false,
-      //   start: timeSelect.start,
-      //   end: timeSelect.end,
-      //   hexColor: "11979e",
-      //   description: "deskripsi",
-      //   category: venue.category,
-      //   venue_id: venue.id,
-      //   venue_name: venue.title,
-      //   status: "BOOKED",
-      //   total: formData.total,
-      //   uniqueCode: uidNow.split("-")[4],
-      //   hours: differentHours,
-      //   phone: formData.phone,
-      // };
-
-      // // send to API
-      // const newData = {
-      //   // id: uidNow,
-      //   title: `${capitalizeFirstLetter(formData.name)}`,
-      //   allDay: false,
-      //   start: timeSelect.start,
-      //   end: timeSelect.end,
-      //   hexColor: "11979e",
-      //   description: "deskripsi",
-      //   category: venue.category,
-      //   venue_id: venue.id,
-      //   venue_name: venue.title,
-      //   status: "BOOKED",
-      //   total: formData.total,
-      //   uniqueCode: uidNow.split("-")[4],
-      //   hours: differentHours,
-      //   phone: formData.phone,
-      // };
+      const codex = uidNow.split("-")[4].slice(0, 8);
 
       const testSend = {
         // id: uidNow,
@@ -345,27 +280,52 @@ const DetailPage: React.FC<{ id: string }> = () => {
         end_time: timeSelect.end,
         // status: "BOOKED",
         id_arena: venue.id,
-        code: uidNow.split("-")[4],
+        code: codex,
         hours: differentHours,
         total: formData.total,
         phone: formData.phone,
       };
 
-      // setStorageValue(`list_event`, [...allSchedule, newData], myEventsList);
       setTotal(formData.total);
-      setUniqueCode(uidNow.split("-")[4]);
+      setUniqueCode(codex);
 
-      const { data } = await http.post(`/arena/booking`, testSend, {
+      await http.post(`/arena/booking`, testSend, {
         headers: { Authorization: "Bearer " },
       });
 
       setShowPayment(true);
 
-      setTransactionId(data.data.id);
+      // setTransactionId(data.data.id);
+      setShowModal(false);
     } catch (error) {
       setToast({ message: "Error booking schedule" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePaid = async () => {
+    try {
+      await http.put(
+        "/online-payment",
+        {
+          code: uniqueCode?.toLowerCase(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer`,
+          },
+        }
+      );
+
+      setToast({
+        message:
+          "Sukses melakukan pembayaran, admin akan melakukan verifikasi!",
+        type: "success",
+      });
+      // history.push(`/detail/${data.data.id_arena}`);
+    } catch (error) {
+      setToast({ message: "Kode tidak ditemukan", type: "error" });
     }
   };
 
@@ -407,18 +367,11 @@ const DetailPage: React.FC<{ id: string }> = () => {
       } else if (view === "day") {
         setDateNow(rangeArr[0]);
       }
-
-      // setRangeTime(
-      //   view === "month" ? ranges : { start: rangeArr[0], end: rangeArr[0] }
-      // );
     }
-    // setViewType(view);
   };
 
   const handleNavigate = (date: Date, v: View) => {
     if (v === "month") {
-      // const startMonth = moment(date).endOf("month").toDate();
-      // console.log("start", startMonth);
       setDateNow(new Date(date));
     } else if (v === "day") {
       // console.log("day", date);
@@ -432,37 +385,33 @@ const DetailPage: React.FC<{ id: string }> = () => {
   return (
     <MainLayout>
       <Toast />
-      {/* <ModalsPayment
-        visible
-        onDismiss={handleClose}
-        uniqueCode="xaazxa"
-        id_transaction="a121"
-      /> */}
 
       <ModalsPaymentQR
         visible={showPayment}
-        onDismiss={() => setShowPayment(false)}
+        onDismiss={() => {
+          setShowPayment(false);
+          showAllEvent();
+        }}
         uniqueCode={uniqueCode ?? "xzx"}
-        id_transaction={transactionId ?? "xzasw"}
         total={total}
+        onOnlinePayment={handlePaid}
       />
 
       <Modals visible={showModal} onDismiss={handleClose}>
-        {!uniqueCode ? (
-          <Styled.ModalWrapper>
-            <h2>Isi data diri</h2>
-            <Divider style={{ marginBottom: 50 }} />
+        <Styled.ModalWrapper>
+          <h2>Isi data diri</h2>
+          <Divider style={{ marginBottom: 50 }} />
 
-            <Input
-              label="Nama"
-              name="name"
-              onChange={(value) =>
-                setFormData({ ...formData, name: value.target.value })
-              }
-              value={formData.name}
-            />
+          <Input
+            label="Nama"
+            name="name"
+            onChange={(value) =>
+              setFormData({ ...formData, name: value.target.value })
+            }
+            value={formData.name}
+          />
 
-            {/* <Input
+          {/* <Input
               label="Organisasi/Tim"
               name="organisasi"
               onChange={(value) =>
@@ -471,74 +420,56 @@ const DetailPage: React.FC<{ id: string }> = () => {
               value={formData.team}
             /> */}
 
-            <div style={{ display: "flex", width: "100%" }}>
-              <TimeInput
-                name="start time"
-                label="start time"
-                min={moment("9:00am", "h:mma").toDate()}
-                max={moment("10:00pm", "h:mma").toDate()}
-                onChange={(value) =>
-                  setTimeSelect({ ...timeSelect, start: value })
-                }
-                value={timeSelect.start}
-                style={{ width: "40%", marginRight: 10 }}
-              />
-              <TimeInput
-                name="end time"
-                label="end time"
-                min={moment(timeSelect.start).add(1, "hour").toDate()}
-                max={moment("11:00pm", "h:mma").toDate()}
-                onChange={(value) => {
-                  setTimeSelect({ ...timeSelect, end: value });
-                }}
-                style={{ width: "40%" }}
-                value={timeSelect.end}
-              />
-            </div>
-
-            <Input
-              label="No HP"
-              type="number"
-              name="number_phone"
-              onChange={(value) => {
-                setFormData({ ...formData, phone: value.target.value });
-              }}
-              value={formData.phone}
-            />
-
-            <Input
-              label="Total Harga"
-              // type="number"
-              disabled
-              name="total"
+          <div style={{ display: "flex", width: "100%" }}>
+            <TimeInput
+              name="start time"
+              label="start time"
+              min={moment("9:00am", "h:mma").toDate()}
+              max={moment("10:00pm", "h:mma").toDate()}
               onChange={(value) =>
-                setFormData({ ...formData, total: Number(value.target.value) })
+                setTimeSelect({ ...timeSelect, start: value })
               }
-              value={rupiah(checkHours * venue.price)}
+              value={timeSelect.start}
+              style={{ width: "40%", marginRight: 10 }}
             />
+            <TimeInput
+              name="end time"
+              label="end time"
+              min={moment(timeSelect.start).add(1, "hour").toDate()}
+              max={moment("11:00pm", "h:mma").toDate()}
+              onChange={(value) => {
+                setTimeSelect({ ...timeSelect, end: value });
+              }}
+              style={{ width: "40%" }}
+              value={timeSelect.end}
+            />
+          </div>
 
-            <Buttons disabled={isDisabled} width="100%" onClick={handleSubmit}>
-              Submit
-            </Buttons>
-          </Styled.ModalWrapper>
-        ) : (
-          <Styled.ModalWrapper>
-            <div
-              className="d-flex"
-              style={{ justifyContent: "center", alignItems: "center" }}
-            >
-              <h2>{uniqueCode}</h2>
-            </div>
-            <Buttons
-              disabled={isDisabled}
-              width="100%"
-              mt={24}
-              onClick={handleClose}
-            >
-              <span style={{ fontSize: 22, margin: 8 }}>Ok</span>
-            </Buttons>
-          </Styled.ModalWrapper>
-        )}
+          <Input
+            label="No HP"
+            type="number"
+            name="number_phone"
+            onChange={(value) => {
+              setFormData({ ...formData, phone: value.target.value });
+            }}
+            value={formData.phone}
+          />
+
+          <Input
+            label="Total Harga"
+            // type="number"
+            disabled
+            name="total"
+            onChange={(value) =>
+              setFormData({ ...formData, total: Number(value.target.value) })
+            }
+            value={rupiah(checkHours * venue.price)}
+          />
+
+          <Buttons disabled={isDisabled} width="100%" onClick={handleSubmit}>
+            Submit
+          </Buttons>
+        </Styled.ModalWrapper>
       </Modals>
 
       <Styled.SectionBanner>
@@ -590,7 +521,7 @@ const DetailPage: React.FC<{ id: string }> = () => {
         </div>
 
         <div>
-          {showCalendar && (
+          {showCalendar && !loading && (
             <Calendar
               // selectable={isAdmin !== "user"}
               selectable
@@ -619,8 +550,6 @@ const DetailPage: React.FC<{ id: string }> = () => {
 
                 setDateNow(bufferOneHour);
               }}
-              // step={0}
-
               components={{
                 event: (prop) => <EventComponent {...prop} />,
                 month: {
