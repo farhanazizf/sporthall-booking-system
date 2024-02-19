@@ -24,7 +24,7 @@ import { useHistory } from "react-router-dom";
 import { ErrorTypes } from "../../utils/constant";
 import { rupiah } from "../../utils/currency";
 import { Input } from "../../components/ui/inputs";
-import { Close, Search, Visibility, VisibilityOff } from "@mui/icons-material";
+import { Close, Search } from "@mui/icons-material";
 
 interface Column {
   id:
@@ -361,7 +361,7 @@ const BookingListPartner: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        {code === "" && (
+        {code.length < 8 && (
           <TablePagination
             rowsPerPageOptions={[10, 25]}
             component="div"
