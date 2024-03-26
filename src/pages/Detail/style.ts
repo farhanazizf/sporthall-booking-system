@@ -35,8 +35,7 @@ const Styled = {
 
   TextUniqueCode: styled.p`
     margin: 0;
-    // margin-bottom: -18px;
-    font-size: 16px;
+    font-size: 32px;
     font-weight: bold;
     text-align: center;
   `,

@@ -197,10 +197,10 @@ const BookingListPartner: React.FC = () => {
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
+  }, [code, filter]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
-    // console.log("new", newPage);
+    console.log("new", newPage);
     setFilter({ ...filter, page: newPage });
   };
 

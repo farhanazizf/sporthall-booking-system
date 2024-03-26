@@ -296,6 +296,7 @@ const DetailPage: React.FC<{ id: string }> = () => {
       setShowPayment(true);
 
       // setTransactionId(data.data.id);
+      setFormData(defaultVal);
       setShowModal(false);
     } catch (error) {
       setToast({ message: "Error booking schedule" });

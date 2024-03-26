@@ -117,7 +117,7 @@ export const ModalsPaymentQR: React.FC<IPopupPayment> = ({
         {uniqueCode ? (
           <div className="d-flex flex-column" style={{ alignItems: "center" }}>
             <div className="mt-4">
-              <p style={{ fontSize: 14, margin: 0, textAlign: "center" }}>
+              <p style={{ fontSize: 16, margin: 0, textAlign: "center" }}>
                 Kode Booking
               </p>
               <Styled.TextUniqueCode>
